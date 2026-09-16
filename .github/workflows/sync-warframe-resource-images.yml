@@ -1,0 +1,62 @@
+name: Sync Warframe resource images
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GameGPS
+        uses: actions/checkout@v4
+
+      - name: Download WFCD resource images
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/warframe/resources
+          python - <<'PY'
+          import json, pathlib, urllib.request
+
+          base = 'https://raw.githubusercontent.com/WFCD/warframe-items/master/data/'
+          with urllib.request.urlopen(base + 'json/Resources.json', timeout=60) as r:
+              items = json.load(r)
+
+          names = sorted({
+              str(item.get('imageName', '')).lstrip('/')
+              for item in items
+              if isinstance(item, dict) and item.get('imageName')
+          })
+
+          dest = pathlib.Path('assets/warframe/resources')
+          ok = 0
+          for name in names:
+              target = dest / pathlib.Path(name).name
+              try:
+                  with urllib.request.urlopen(base + 'img/' + name, timeout=30) as r:
+                      target.write_bytes(r.read())
+                  ok += 1
+              except Exception as exc:
+                  print(f'WARN {name}: {exc}')
+
+          print(f'Synced {ok}/{len(names)} WFCD resource images')
+          PY
+
+      - name: Commit updated images
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'gamegps-bot'
+          git config user.email 'gamegps-bot@users.noreply.github.com'
+          git add assets/warframe/resources
+          if git diff --cached --quiet; then
+            echo 'No image changes.'
+            exit 0
+          fi
+          git commit -m 'Sync Warframe resource images'
+          git push
