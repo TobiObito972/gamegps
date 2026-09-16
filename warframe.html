@@ -3,119 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Warframe GPS | GameGPS</title>
-
     <link rel="stylesheet" href="style.css">
 </head>
-
-<body>
-
+<body data-game="warframe">
 <header>
-    <a href="index.html" class="logo">
-        GAME<span>GPS</span>
-    </a>
-
-    <nav>
-        <a href="index.html">Accueil</a>
-        <a href="#">Warframe GPS</a>
-    </nav>
+    <a href="index.html" class="logo">GAME<span>GPS</span></a>
+    <nav><a href="index.html">Accueil</a><a href="#search">Recherche GPS</a><a href="#tools">Outils</a></nav>
 </header>
-
 <main>
-
-    <section class="hero">
-
+    <section class="hero warframe-hero">
         <p class="tag">GAMEGPS / WARFRAME</p>
-
-        <h1>
-            WARFRAME<br>
-            <span>GPS</span>
-        </h1>
-
-        <p class="description">
-            Ton compagnon pour savoir quoi farmer,
-            où aller et comment progresser dans Warframe.
-        </p>
-
+        <h1>WARFRAME<br><span>GPS</span></h1>
+        <p class="description">Recherche ce que tu veux obtenir. GameGPS analyse les données disponibles et te propose une destination de farm.</p>
+        <a class="button" href="#search">LANCER LE GPS</a>
     </section>
 
-    <section class="games">
-
-        <div class="section-title">
-            <p>WARFRAME GPS</p>
-            <h2>QUE CHERCHES-TU ?</h2>
+    <section class="wf-search-section" id="search">
+        <div class="section-title"><p>MOTEUR WARFRAME</p><h2>QUE CHERCHES-TU ?</h2></div>
+        <div class="wf-search-box">
+            <input id="warframeSearchInput" type="search" autocomplete="off" placeholder="Ex : Neurodes, Rhino, Soma Prime...">
+            <button id="warframeSearchButton" type="button">RECHERCHER</button>
         </div>
+        <div id="warframeSearchResults" class="wf-results"><div class="wf-status">Entre un objet pour démarrer ton itinéraire GameGPS.</div></div>
+    </section>
 
+    <section class="games" id="tools">
+        <div class="section-title"><p>WARFRAME GPS</p><h2>OUTILS</h2></div>
         <div class="game-grid">
-
-            <article class="game-card">
-                <div class="number">01</div>
-                <h3>RESSOURCES</h3>
-                <p>
-                    Trouve où farmer les ressources
-                    dont tu as besoin.
-                </p>
-                <button>RECHERCHER →</button>
-            </article>
-
-            <article class="game-card">
-                <div class="number">02</div>
-                <h3>WARFRAMES</h3>
-                <p>
-                    Découvre comment obtenir chaque
-                    Warframe et ses composants.
-                </p>
-                <button>EXPLORER →</button>
-            </article>
-
-            <article class="game-card">
-                <div class="number">03</div>
-                <h3>ARMES</h3>
-                <p>
-                    Trouve les armes et découvre
-                    comment les obtenir.
-                </p>
-                <button>EXPLORER →</button>
-            </article>
-
-            <article class="game-card">
-                <div class="number">04</div>
-                <h3>PROGRESSION</h3>
-                <p>
-                    GameGPS t'aide à déterminer
-                    quoi faire ensuite.
-                </p>
-                <button>COMMENCER →</button>
-            </article>
-
-            <article class="game-card">
-                <div class="number">05</div>
-                <h3>RELIQUES</h3>
-                <p>
-                    Recherche les reliques et les
-                    récompenses Prime associées.
-                </p>
-                <button>RECHERCHER →</button>
-            </article>
-
-            <article class="game-card">
-                <div class="number">06</div>
-                <h3>ASSISTANT GPS</h3>
-                <p>
-                    Dis à GameGPS ce que tu veux
-                    obtenir et laisse-le préparer ton parcours.
-                </p>
-                <button>LANCER →</button>
-            </article>
-
+            <article class="game-card"><div class="number">01</div><h3>RESSOURCES</h3><p>Trouve où farmer les ressources dont tu as besoin.</p><button onclick="document.getElementById('warframeSearchInput').focus()">RECHERCHER →</button></article>
+            <article class="game-card"><div class="number">02</div><h3>WARFRAMES</h3><p>Recherche une Warframe et découvre ses données d'obtention.</p><button onclick="document.getElementById('warframeSearchInput').focus()">EXPLORER →</button></article>
+            <article class="game-card"><div class="number">03</div><h3>ARMES</h3><p>Recherche les armes et leurs composants.</p><button onclick="document.getElementById('warframeSearchInput').focus()">EXPLORER →</button></article>
+            <article class="game-card"><div class="number">04</div><h3>PROGRESSION</h3><p>Le moteur commun GameGPS permettra de suivre ta progression.</p><button>BIENTÔT →</button></article>
+            <article class="game-card"><div class="number">05</div><h3>RELIQUES</h3><p>Le module reliques sera ajouté au moteur Warframe.</p><button>BIENTÔT →</button></article>
+            <article class="game-card"><div class="number">06</div><h3>ASSISTANT GPS</h3><p>GameGPS prépare progressivement une route adaptée à ton objectif.</p><button onclick="document.getElementById('warframeSearchInput').focus()">LANCER →</button></article>
         </div>
-
     </section>
-
 </main>
-
+<footer><div class="logo">GAME<span>GPS</span></div><p>WARFRAME MODULE • GAMEGPS CORE</p></footer>
 <script src="script.js"></script>
-
+<script src="warframe.js"></script>
 </body>
 </html>
