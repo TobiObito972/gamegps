@@ -1,5 +1,5 @@
-// GAMEGPS — WARFRAME RESOURCE ROUTES V5.5
-// Extension non destructive du moteur V5.4 : plusieurs profils de farm par ressource.
+// GAMEGPS — WARFRAME RESOURCE ROUTES V5.6
+// Conserve les routes V5.5 et ajoute un guide dynamique pour les ressources sans mission directe.
 (() => {
   const GPS = window.WarframeGPS;
   if (!GPS) return;
@@ -30,7 +30,7 @@
       {label:"RAPIDE", path:"Saturne → Tethys → Assassination", method:"Enchaîne les runs sur Sargas Ruk et récupère les ressources du trajet."},
       {label:"DÉBUTANT", path:"Cérès → Exta → Assassination", method:"Élimine les boss puis explore rapidement avant l'extraction."}
     ],
-    neuralSensors: [
+    neuralsensors: [
       {label:"RECOMMANDÉ", path:"Jupiter → Cameria → Survie", method:"Reste en mission pour multiplier les ennemis et les chances de ressources."},
       {label:"RAPIDE", path:"Jupiter → Themisto → Assassination", method:"Élimine Alad V et Zanuka puis relance immédiatement la mission."},
       {label:"DÉBUTANT", path:"Jupiter → Io → Défense", method:"Enchaîne les vagues et récupère les ressources entre chaque rotation."}
@@ -38,20 +38,33 @@
   };
 
   const key = name => GPS.compact(name);
-  routes.neuralsensors = routes.neuralSensors;
-  delete routes.neuralSensors;
+  const text = item => GPS.normalize([item?.type,item?.category,item?.productCategory,item?.description,item?.uniqueName,item?.name].filter(Boolean).join(' '));
 
-  GPS.resourceProfiles = function(name) {
-    const custom = routes[key(name)];
-    if (custom) return custom;
-    const base = this.resourceGuide(name);
-    return base ? [{label:"RECOMMANDÉ", path:base.path, method:base.method}] : [];
+  function contextualProfile(item) {
+    const raw=text(item), name=item?.name||'Cette ressource';
+    if (/fish|servofish|poisson/.test(raw)) return {label:"MÉTHODE D’OBTENTION",path:"MONDE OUVERT → PÊCHE",method:`${name} est lié à la pêche. Utilise la zone ouverte, l'appât et le cycle adaptés à cette espèce ; GameGPS évite d'inventer une mission classique.`};
+    if (/plant|flora|plante/.test(raw)) return {label:"MÉTHODE D’OBTENTION",path:"MISSIONS / MONDES OUVERTS → SCAN DE PLANTES",method:`${name} est une ressource végétale. Équipe un scanner et récolte-la dans son environnement plutôt que de chercher un drop de mission classique.`};
+    if (/gem|\bore\b|mineral|mining|minerai/.test(raw)) return {label:"MÉTHODE D’OBTENTION",path:"MONDE OUVERT → MINAGE",method:`${name} provient du minage ou de son raffinage. Mine les veines dans la zone ouverte correspondante puis raffine la matière si nécessaire.`};
+    if (/alloy|alliage/.test(raw)) return {label:"FABRICATION / RAFFINAGE",path:"FONDERIE → MATÉRIAU BRUT → ALLIAGE",method:`${name} est traité comme un matériau raffiné. Obtiens d'abord sa matière brute et le schéma requis, puis fabrique-le à la Fonderie.`};
+    return null;
+  }
+
+  GPS.resourceProfiles = function(name,item=null) {
+    const custom=routes[key(name)];
+    if(custom)return custom;
+    const base=this.resourceGuide(name);
+    if(base)return [{label:"RECOMMANDÉ",path:base.path,method:base.method}];
+    const contextual=contextualProfile(item||{name});
+    return contextual?[contextual]:[];
   };
 
   GPS.renderResource = function(item) {
-    const name=item?.name||"Ressource", profiles=this.resourceProfiles(name), drops=this.getDrops(item), best=this.bestDrop(drops), desc=item?.description||"Ressource de fabrication Warframe.", image=item?.imageName?`https://cdn.warframestat.us/img/${item.imageName}`:"";
-    if(!profiles.length) profiles.push({label:"SOURCE DÉTECTÉE",path:best?this.routePath(best):"Destination à déterminer",method:best?`Source détectée • ${this.formatChance(best)}`:"GameGPS n'a pas encore de route optimisée pour cette ressource."});
-    const cards=profiles.map((r,i)=>`<div class="wf-route"><div><span>${i===0?"ITINÉRAIRE DE FARM • ":"ALTERNATIVE • "}${this.escape(r.label)}</span><strong>${this.escape(r.path)}</strong><small>${this.escape(r.method)}</small></div></div>`).join("");
-    this.results.innerHTML=`<article class="wf-result-card"><div class="wf-result-head">${image?`<img src="${image}" alt="${this.escape(name)}">`:""}<div><span class="wf-kicker">GAMEGPS / RESSOURCE V5.5</span><h3>${this.escape(name)}</h3><small>RESSOURCE • ${profiles.length} ROUTE${profiles.length>1?"S":""}</small></div></div><p class="wf-description">${this.escape(desc)}</p>${cards}${drops.length?`<div class="wf-components"><h4>SOURCES DÉTECTÉES</h4>${drops.slice(0,5).map(d=>`<div class="wf-row"><span><b>${this.escape(this.routePath(d))}</b><small>Source disponible</small></span><strong>${this.escape(this.formatChance(d))}</strong></div>`).join("")}</div>`:""}</article>`;
+    const name=item?.name||"Ressource", profiles=this.resourceProfiles(name,item), drops=this.getDrops(item), best=this.bestDrop(drops), desc=item?.description||"Ressource de fabrication Warframe.", image=item?.imageName?`https://cdn.warframestat.us/img/${item.imageName}`:"";
+    if(!profiles.length){
+      if(best) profiles.push({label:"SOURCE DÉTECTÉE",path:this.routePath(best),method:`Source détectée dans les données Warframe • ${this.formatChance(best)}`});
+      else profiles.push({label:"SOURCE À IDENTIFIER",path:"Aucune mission directe détectée",method:"Cette ressource existe dans le catalogue, mais les données actuellement disponibles ne fournissent pas une source exploitable. GameGPS n'affiche pas de destination inventée."});
+    }
+    const cards=profiles.map((r,i)=>`<div class="wf-route"><div><span>${i===0?"OBTENTION • ":"ALTERNATIVE • "}${this.escape(r.label)}</span><strong>${this.escape(r.path)}</strong><small>${this.escape(r.method)}</small></div></div>`).join("");
+    this.results.innerHTML=`<article class="wf-result-card"><div class="wf-result-head">${image?`<img src="${image}" alt="${this.escape(name)}">`:""}<div><span class="wf-kicker">GAMEGPS / RESSOURCE V5.6</span><h3>${this.escape(name)}</h3><small>RESSOURCE • ${profiles.length} SOURCE${profiles.length>1?"S":""}</small></div></div><p class="wf-description">${this.escape(desc)}</p>${cards}${drops.length?`<div class="wf-components"><h4>SOURCES DÉTECTÉES</h4>${drops.slice(0,5).map(d=>`<div class="wf-row"><span><b>${this.escape(this.routePath(d))}</b><small>Source disponible</small></span><strong>${this.escape(this.formatChance(d))}</strong></div>`).join("")}</div>`:""}</article>`;
   };
 })();
