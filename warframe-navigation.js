@@ -1,6 +1,6 @@
-// GAMEGPS — WARFRAME NAVIGATION V6.12 — dynamic WFCD catalogs + global search
+// GAMEGPS — WARFRAME NAVIGATION V6.12.1 — live WFCD GitHub catalogs + global search
 (()=>{
-const KEY='gamegps:warframe:navigation',WFCD='https://unpkg.com/warframe-items@latest/data/json',VER='6.12';
+const KEY='gamegps:warframe:navigation',WFCD='https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json',VER='6.12.1';
 const DATA={resources:['Resources.json'],warframes:['Warframes.json'],weapons:['Primary.json','Secondary.json','Melee.json','Arch-Gun.json','Arch-Melee.json'],relics:['Relics.json']};
 const CORE_RESOURCES=['Neurodes','Morphics','Plastids','Polymer Bundle','Orokin Cell','Neural Sensors','Alloy Plate','Ferrite','Nano Spores','Rubedo','Salvage','Circuits','Control Module','Argon Crystal','Tellurium','Gallium','Oxium','Cryotic','Kuva'];
 const categories={resources:{title:'RESSOURCES',desc:'Catalogue dynamique WFCD des ressources Warframe, automatiquement actualisé.'},warframes:{title:'WARFRAMES',desc:'Catalogue dynamique WFCD des Warframes et variantes Prime.'},weapons:{title:'ARMES',desc:'Armes principales, secondaires, mêlée, Arch-Gun et Arch-Melee issues des catalogues WFCD.'},progression:{title:'PROGRESSION',desc:'Retrouve tes parcours sauvegardés et reprends ta progression.'},relics:{title:'RELIQUES',desc:'Catalogue dynamique des reliques avec contenu, raffinements et routes.'},gps:{title:'GPS / ASSISTANT',desc:'Combine plusieurs objectifs pour créer un itinéraire de farm optimisé.'}};
