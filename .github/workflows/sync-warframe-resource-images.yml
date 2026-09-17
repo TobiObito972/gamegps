@@ -15,7 +15,7 @@ jobs:
       - name: Checkout GameGPS
         uses: actions/checkout@v4
 
-      - name: Download WFCD resource images and build map
+      - name: Download WFCD resource images and build local catalog
         shell: bash
         run: |
           set -euo pipefail
@@ -24,14 +24,45 @@ jobs:
           import json, pathlib, urllib.request
 
           base = 'https://raw.githubusercontent.com/WFCD/warframe-items/master/data/'
-          with urllib.request.urlopen(base + 'json/Resources.json', timeout=60) as r:
-              items = json.load(r)
+
+          def load_json(name):
+              with urllib.request.urlopen(base + 'json/' + name, timeout=120) as r:
+                  return json.load(r)
+
+          resources = load_json('Resources.json')
+          # Misc contains resource records that can be absent or minimal in Resources.json.
+          # It is processed by GitHub Actions only; browsers never download this multi-MB file.
+          misc = load_json('Misc.json')
 
           dest = pathlib.Path('assets/warframe/resources')
           image_map = {}
           source_names = set()
+          catalog = {}
 
-          def walk(value):
+          def compact_record(value):
+              record = {'name': value.get('name')}
+              for field in ('uniqueName', 'type', 'category', 'productCategory', 'description', 'imageName'):
+                  if value.get(field) not in (None, ''):
+                      record[field] = value.get(field)
+              for field in ('drops', 'drop', 'components'):
+                  data = value.get(field)
+                  if data:
+                      record[field] = data
+              return record
+
+          def quality(value):
+              return sum([
+                  4 if value.get('imageName') else 0,
+                  3 if value.get('description') else 0,
+                  3 if value.get('drops') or value.get('drop') else 0,
+                  1 if value.get('uniqueName') else 0,
+              ])
+
+          def looks_resource(value):
+              text = ' '.join(str(value.get(k, '')) for k in ('type', 'category', 'productCategory', 'uniqueName')).lower()
+              return value.get('name') and ('resource' in text or 'miscitems' in text)
+
+          def collect(value, allow_misc=False):
               if isinstance(value, dict):
                   name = value.get('name')
                   image = value.get('imageName')
@@ -40,13 +71,27 @@ jobs:
                       source_names.add(image)
                       if name:
                           image_map[str(name).strip().lower()] = pathlib.Path(image).name
+                  if name and (not allow_misc or looks_resource(value)):
+                      k = str(name).strip().lower()
+                      record = compact_record(value)
+                      if k not in catalog or quality(record) > quality(catalog[k]):
+                          catalog[k] = record
                   for child in value.values():
-                      walk(child)
+                      collect(child, allow_misc)
               elif isinstance(value, list):
                   for child in value:
-                      walk(child)
+                      collect(child, allow_misc)
 
-          walk(items)
+          collect(resources, False)
+          collect(misc, True)
+
+          # Rebuild image map from the best merged records too.
+          for k, value in catalog.items():
+              image = value.get('imageName')
+              if image:
+                  image = str(image).lstrip('/')
+                  source_names.add(image)
+                  image_map[k] = pathlib.Path(image).name
 
           ok = 0
           for image in sorted(source_names):
@@ -62,19 +107,23 @@ jobs:
               json.dumps(image_map, ensure_ascii=False, sort_keys=True, indent=2) + '\n',
               encoding='utf-8'
           )
-          print(f'Synced {ok}/{len(source_names)} WFCD resource images; mapped {len(image_map)} resource names')
+          pathlib.Path('assets/warframe/resource-catalog.json').write_text(
+              json.dumps(catalog, ensure_ascii=False, sort_keys=True, separators=(',', ':')) + '\n',
+              encoding='utf-8'
+          )
+          print(f'Synced {ok}/{len(source_names)} WFCD resource images; mapped {len(image_map)} names; catalogued {len(catalog)} resources')
           PY
 
-      - name: Commit updated images and map
+      - name: Commit updated resource assets
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'gamegps-bot'
           git config user.email 'gamegps-bot@users.noreply.github.com'
-          git add assets/warframe/resources assets/warframe/resource-image-map.json
+          git add assets/warframe/resources assets/warframe/resource-image-map.json assets/warframe/resource-catalog.json
           if git diff --cached --quiet; then
-            echo 'No image changes.'
+            echo 'No resource changes.'
             exit 0
           fi
-          git commit -m 'Sync Warframe resource images and map'
+          git commit -m 'Sync Warframe resource assets and catalog'
           git push
