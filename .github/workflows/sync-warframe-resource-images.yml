@@ -15,7 +15,7 @@ jobs:
       - name: Checkout GameGPS
         uses: actions/checkout@v4
 
-      - name: Download WFCD resource images
+      - name: Download WFCD resource images and build map
         shell: bash
         run: |
           set -euo pipefail
@@ -27,36 +27,54 @@ jobs:
           with urllib.request.urlopen(base + 'json/Resources.json', timeout=60) as r:
               items = json.load(r)
 
-          names = sorted({
-              str(item.get('imageName', '')).lstrip('/')
-              for item in items
-              if isinstance(item, dict) and item.get('imageName')
-          })
-
           dest = pathlib.Path('assets/warframe/resources')
+          image_map = {}
+          source_names = set()
+
+          def walk(value):
+              if isinstance(value, dict):
+                  name = value.get('name')
+                  image = value.get('imageName')
+                  if image:
+                      image = str(image).lstrip('/')
+                      source_names.add(image)
+                      if name:
+                          image_map[str(name).strip().lower()] = pathlib.Path(image).name
+                  for child in value.values():
+                      walk(child)
+              elif isinstance(value, list):
+                  for child in value:
+                      walk(child)
+
+          walk(items)
+
           ok = 0
-          for name in names:
-              target = dest / pathlib.Path(name).name
+          for image in sorted(source_names):
+              target = dest / pathlib.Path(image).name
               try:
-                  with urllib.request.urlopen(base + 'img/' + name, timeout=30) as r:
+                  with urllib.request.urlopen(base + 'img/' + image, timeout=30) as r:
                       target.write_bytes(r.read())
                   ok += 1
               except Exception as exc:
-                  print(f'WARN {name}: {exc}')
+                  print(f'WARN {image}: {exc}')
 
-          print(f'Synced {ok}/{len(names)} WFCD resource images')
+          pathlib.Path('assets/warframe/resource-image-map.json').write_text(
+              json.dumps(image_map, ensure_ascii=False, sort_keys=True, indent=2) + '\n',
+              encoding='utf-8'
+          )
+          print(f'Synced {ok}/{len(source_names)} WFCD resource images; mapped {len(image_map)} resource names')
           PY
 
-      - name: Commit updated images
+      - name: Commit updated images and map
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'gamegps-bot'
           git config user.email 'gamegps-bot@users.noreply.github.com'
-          git add assets/warframe/resources
+          git add assets/warframe/resources assets/warframe/resource-image-map.json
           if git diff --cached --quiet; then
             echo 'No image changes.'
             exit 0
           fi
-          git commit -m 'Sync Warframe resource images'
+          git commit -m 'Sync Warframe resource images and map'
           git push
