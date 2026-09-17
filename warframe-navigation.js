@@ -1,8 +1,8 @@
-// GAMEGPS — WARFRAME NAVIGATION V6.12.4
+// GAMEGPS — WARFRAME NAVIGATION V6.12.5
 // Global search + category search/filters + live WFCD data + local fallback resource enrichment.
 (()=>{
 'use strict';
-const VER='6.12.4';
+const VER='6.12.5';
 const WFCD='https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json';
 const DAY=()=>new Date().toISOString().slice(0,10);
 const DATA={warframes:['Warframes.json'],weapons:['Primary.json','Secondary.json','Melee.json','Arch-Gun.json','Arch-Melee.json'],resources:['Resources.json'],relics:['Relics.json']};
@@ -29,7 +29,8 @@ function score(name,q){const n=norm(name);if(n===q)return 0;if(n.startsWith(q))r
 async function globalFind(q){q=norm(q);if(!q)return null;const all=await globalItems();all.sort((a,b)=>score(a.item.name,q)-score(b.item.name,q)||a.item.name.localeCompare(b.item.name));return all.find(x=>score(x.item.name,q)<99)||null}
 function categoryData(kind,items){if(kind==='resources')return items;if(kind==='warframes'||kind==='weapons')return items.filter(x=>!isTechnical(x));if(kind==='relics')return groupRelics(items);return items}
 function card(kind,x){const image=img(x);return `<article class="wf-item-card" data-name="${esc(x.name)}"><div class="wf-item-img">${image?`<img src="${esc(image)}" alt="">`:'<span>GPS</span>'}</div><div><p class="tag">${esc(kind.toUpperCase())}</p><h3>${esc(x.name)}</h3><p>${esc(x.description||'Données Warframe disponibles dans le GPS.')}</p><button class="game-link" data-open-kind="${esc(kind)}" data-open-name="${esc(x.name)}">OUVRIR LE GPS →</button></div></article>`}
-async function launch(kind,item){if(!item)return;if(kind==='resource'){item=await enrichResource(item);if(window.WarframeGPS){WarframeGPS.currentItem=item;WarframeGPS.components=[];WarframeGPS.renderResource(item);return}}if(kind==='weapon'&&window.WarframeGPS?.renderWeapon){WarframeGPS.currentItem=item;WarframeGPS.renderWeapon(item);return}if(kind==='relic'&&window.WarframeGPS?.renderRelic){WarframeGPS.currentItem=item;WarframeGPS.renderRelic(item);return}if(kind==='warframe'&&window.WarframeGPS){WarframeGPS.currentItem=item;WarframeGPS.components=item.components||[];WarframeGPS.renderResult?.();return}location.hash='search'}
+function scrollToGpsResult(){requestAnimationFrame(()=>requestAnimationFrame(()=>{const target=document.getElementById('warframeSearchResults')||document.getElementById('search');target?.scrollIntoView({behavior:'smooth',block:'start'})}))}
+async function launch(kind,item){if(!item)return;if(kind==='resource'){item=await enrichResource(item);if(window.WarframeGPS){WarframeGPS.currentItem=item;WarframeGPS.components=[];WarframeGPS.renderResource(item);scrollToGpsResult();return}}if(kind==='weapon'&&window.WarframeGPS?.renderWeapon){WarframeGPS.currentItem=item;WarframeGPS.renderWeapon(item);scrollToGpsResult();return}if(kind==='relic'&&window.WarframeGPS?.renderRelic){WarframeGPS.currentItem=item;WarframeGPS.renderRelic(item);scrollToGpsResult();return}if(kind==='warframe'&&window.WarframeGPS){WarframeGPS.currentItem=item;WarframeGPS.components=item.components||[];WarframeGPS.renderResult?.();scrollToGpsResult();return}location.hash='search'}
 function resourceGroup(x){const t=norm([x.name,x.type,x.category,x.productCategory,x.description,x.uniqueName].join(' '));if(/fish|poisson/.test(t))return'fish';if(/plant|plante|flora|flower|leaf|seed/.test(t))return'plant';if(/ore|gem|mineral|alloy|mining|vein|minerai|alliage/.test(t))return'mining';return'craft'}
 function weaponGroup(x){const t=norm([x.category,x.type,x.productCategory,x.uniqueName].join(' '));if(/arch.?gun|archwing.*primary/.test(t))return'archgun';if(/arch.?melee|archwing.*melee/.test(t))return'archmelee';if(/secondary|pistol/.test(t))return'secondary';if(/melee/.test(t))return'melee';return'primary'}
 function relicGroup(x){const n=norm(x.name);return n.startsWith('lith ')?'lith':n.startsWith('meso ')?'meso':n.startsWith('neo ')?'neo':n.startsWith('axi ')?'axi':'other'}
